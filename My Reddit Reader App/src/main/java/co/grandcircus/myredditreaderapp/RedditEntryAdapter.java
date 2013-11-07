@@ -18,13 +18,13 @@ import java.util.List;
  */
 public class RedditEntryAdapter extends ArrayAdapter<RedditEntry> {
 
-    private ArrayList<RedditEntry> objects;
-    private Context context;
+//    private ArrayList<RedditEntry> objects;
+//    private Context context;
 
     public RedditEntryAdapter(Context context, int textViewResourceId, ArrayList<RedditEntry> objects) {
         super(context, textViewResourceId, objects);
-        this.objects = objects;
-        this.context = context;
+//        this.objects = objects;
+//        this.context = context;
     }
 
     @Override
@@ -32,26 +32,26 @@ public class RedditEntryAdapter extends ArrayAdapter<RedditEntry> {
 
         if (convertView == null) {
             LayoutInflater inflater = (LayoutInflater)
-                    context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+                    getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             convertView = inflater.inflate(R.layout.list_row, null);
         }
 
-        RedditEntry thisEntry = objects.get(position);
+        RedditEntry thisEntry = getItem(position);
         if (thisEntry != null) {
             ImageView imageView = (ImageView)convertView.findViewById(R.id.list_image);
-            // TODO Need to fill in ImageView
-
             String url = thisEntry.getThumbnailURL();
-            // Is the following line necessary to keep a fast scrolling listView from putting an
-            // old, but not yet loaded image, onto a new ImageView?
-//            Picasso.with(context).cancelRequest(imageView);
-            // TODO Not sure why I need this
+            // Is the following line necessary to keep a fast scrolling listView from putting
+            // an old, but not yet loaded image, onto a new ImageView?
+//            TODO Picasso.with(context).cancelRequest(imageView);
+            // TODO Not sure why I need the following
             if (url.equals("")) {
                 // If there is no image, clear any old image from the ImageView so the previous
                 // one doesn't show up again.
                 imageView.setImageResource(android.R.color.transparent);
             } else {
-                Picasso.with(context).load(url).into(imageView);
+                Picasso.with(getContext()).load(url).into(imageView);
+                // Make it so that while the picture is loading it shows a little circular
+                // progress circle instead of whatever it shows now?
             }
 
             TextView textView = (TextView) convertView.findViewById(R.id.list_title);
