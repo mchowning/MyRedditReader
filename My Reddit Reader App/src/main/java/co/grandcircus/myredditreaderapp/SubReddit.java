@@ -6,6 +6,7 @@ package co.grandcircus.myredditreaderapp;
 public class SubReddit {
 
     private String name;
+    private String url;
 
     public String getUrl() {
         return url;
@@ -23,5 +24,7 @@ public class SubReddit {
         this.name = name;
     }
 
-    private String url;
+    public String toString() {
+        return getName();
+    }
 }

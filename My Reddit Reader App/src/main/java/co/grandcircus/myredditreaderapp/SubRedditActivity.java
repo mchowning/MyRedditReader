@@ -1,14 +1,17 @@
 package co.grandcircus.myredditreaderapp;
 
+import android.net.http.HttpResponseCache;
 import android.os.AsyncTask;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Spinner;
@@ -19,6 +22,7 @@ import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -29,20 +33,32 @@ import java.util.ArrayList;
 public class SubRedditActivity extends ActionBarActivity {
 
     public static final String REDDIT_BASE = "http://www.reddit.com/";
-    private String subredditAddress = ".json";
+    public static final String JSON_EXTENSION = ".json";
+    private String subredditExtension;
     private ArrayList<SubReddit> subReddits;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_subreddit);
-        new GetRedditThread().execute(null);
+        new GetSubReddits().execute(null);
+//        new GetRedditThread().execute(null);
 
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
                     .add(R.id.container, new PlaceholderFragment())
                     .commit();
         }
+
+        // Set up HttpResponseCache for caching of all http requests to improve performance
+        // Requires API min of 14 (note the clearing of the cache in onStop as well)
+//        try {
+//            File httpCacheDir = new File(this.getCacheDir(), "http");
+//            long httpCacheSize = 5 * 1024 * 1024; // 5 MiB
+//            HttpResponseCache.install(httpCacheDir, httpCacheSize);
+//        } catch (IOException e) {
+//            Log.e("SubRedditActivity.onCreate", "HTTP response cache installation failed:" + e);
+//        }
     }
 
 
@@ -52,6 +68,13 @@ public class SubRedditActivity extends ActionBarActivity {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.subreddit, menu);
         return true;
+    }
+
+    @Override
+    protected void onStop() {
+//        HttpResponseCache cache = HttpResponseCache.getInstalled();
+//        if (cache != null) cache.flush();
+        super.onStop();
     }
 
     @Override
@@ -82,37 +105,21 @@ public class SubRedditActivity extends ActionBarActivity {
         }
     }
 
-    // Picasso is useful for getting the images downloaded and displayed
-    // We're supposed to createa ListView with these entries
-    // TODO Need to tie the downloaded image to a particular listitem so that delayed downloads
-    // don't URLResult in the wrong image being loaded into the listItem when you scroll fast.
-    // Or, you can cancel the request also (Piacasso has a way to make it override if there
-    // is a pending request.
-    // Picasso.with(SubRedditActivity.this
-    //  .load
-    //  .into
-    // TODO Use Picasso.with.cancelRequest
-
-//    private void enableHttpResponseCache() {
-//        try {
-//            long httpCacheSize = 10 * 1024 * 1024; // 10MiB
-//            File httpCacheDir = new File(getCacheDir(), "http");
-//            Class.forName("android.net.http.HttpResponseCache")
-//                    .getMethod("install", File.class, long.class)
-//                    .invoke(null, httpCacheDir, httpCacheSize);
-//        } catch (Exception httpResponseCacheNotAvailable) {
-//
-//        }
-//    }
-
     private class GetSubReddits extends AsyncTask<Void, Void, Void> {
 
-        public static final String SUB_REDDIT_JSON = "www.reddit.com/reddits.json";
+        public static final String SUB_REDDIT_JSON = "http://www.reddit.com/reddits.json";
 
         @Override
         protected Void doInBackground(Void... voids) {
 
             subReddits = new ArrayList<SubReddit>();
+
+            //Add initial "top" reddit feed as initial feed which will be the first one loaded
+            SubReddit top = new SubReddit();
+            top.setName("top");
+            top.setUrl("");
+            subReddits.add(top);
+
             String source = getJSONString(SUB_REDDIT_JSON);
 
             try {
@@ -145,14 +152,26 @@ public class SubRedditActivity extends ActionBarActivity {
                     android.R.layout.simple_spinner_dropdown_item, subReddits);
             Spinner spinner = (Spinner) findViewById(R.id.spinner_subreddit);
             spinner.setAdapter(adapter);
+            spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                    SubReddit selectedSubReddit = (SubReddit) adapterView.getSelectedItem();
+                    subredditExtension = selectedSubReddit.getUrl();
+                    new GetRedditThread().execute(null);
+                }
 
+                @Override
+                public void onNothingSelected(AdapterView<?> adapterView) {
+
+                }
+            });
         }
     }
 
-    private class GetRedditThread extends AsyncTask<Void, Void, ArrayList<RedditEntry>> {
+    private class GetRedditThread extends AsyncTask<String, Void, ArrayList<RedditEntry>> {
 
         @Override
-        protected ArrayList<RedditEntry> doInBackground(Void... voids) {
+        protected ArrayList<RedditEntry> doInBackground(String... voids) {
             return getRedditStuff();
         }
 
@@ -162,13 +181,16 @@ public class SubRedditActivity extends ActionBarActivity {
             ListView listView = (ListView) findViewById(R.id.list_reddit_entries);
             RedditEntryAdapter adapter = new RedditEntryAdapter(SubRedditActivity.this,
                     android.R.layout.simple_spinner_item, redditEntries);
+
+            // clear listView before having it start loading new content so the old content
+            // doesn't show while loading the new content.
+            listView.setAdapter(null);
             listView.setAdapter(adapter);
-            // TODO update view
         }
 
         private ArrayList<RedditEntry> getRedditStuff() {
 
-            String result = getJSONString(REDDIT_BASE + subredditAddress);
+            String result = getJSONString(REDDIT_BASE + subredditExtension + JSON_EXTENSION);
 
             JSONSubreddit jsr = new JSONSubreddit(result);
             return jsr.getEntries();
