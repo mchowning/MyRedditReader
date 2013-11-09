@@ -18,13 +18,8 @@ import java.util.List;
  */
 public class RedditEntryAdapter extends ArrayAdapter<RedditEntry> {
 
-//    private ArrayList<RedditEntry> objects;
-//    private Context context;
-
-    public RedditEntryAdapter(Context context, int textViewResourceId, ArrayList<RedditEntry> objects) {
-        super(context, textViewResourceId, objects);
-//        this.objects = objects;
-//        this.context = context;
+    public RedditEntryAdapter(Context context, int textViewResourceId) {
+        super(context, textViewResourceId);
     }
 
     @Override

@@ -1,11 +1,9 @@
 package co.grandcircus.myredditreaderapp;
 
-import android.net.http.HttpResponseCache;
 import android.os.AsyncTask;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -22,7 +20,6 @@ import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -35,46 +32,36 @@ public class SubRedditActivity extends ActionBarActivity {
     public static final String REDDIT_BASE = "http://www.reddit.com/";
     public static final String JSON_EXTENSION = ".json";
     private String subredditExtension;
-    private ArrayList<SubReddit> subReddits;
+    // Stores the extension for getting the current entries and the next entries.
+    private String currentAfterExtension;
+    private String nextAfterExtension;
+
+    private ArrayAdapter<SubReddit> subredditAdapter;
+    private RedditEntryAdapter redditEntryAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_subreddit);
-        new GetSubReddits().execute(null);
-//        new GetRedditThread().execute(null);
-
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
                     .add(R.id.container, new PlaceholderFragment())
                     .commit();
         }
 
-        // Set up HttpResponseCache for caching of all http requests to improve performance
-        // Requires API min of 14 (note the clearing of the cache in onStop as well)
-//        try {
-//            File httpCacheDir = new File(this.getCacheDir(), "http");
-//            long httpCacheSize = 5 * 1024 * 1024; // 5 MiB
-//            HttpResponseCache.install(httpCacheDir, httpCacheSize);
-//        } catch (IOException e) {
-//            Log.e("SubRedditActivity.onCreate", "HTTP response cache installation failed:" + e);
-//        }
-    }
+        subredditAdapter = new ArrayAdapter<SubReddit>(SubRedditActivity.this,
+            android.R.layout.simple_spinner_dropdown_item);
+        redditEntryAdapter = new RedditEntryAdapter(SubRedditActivity.this,
+                android.R.layout.simple_spinner_item);
 
+        new GetListOfSubReddits().execute(null);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.subreddit, menu);
         return true;
-    }
-
-    @Override
-    protected void onStop() {
-//        HttpResponseCache cache = HttpResponseCache.getInstalled();
-//        if (cache != null) cache.flush();
-        super.onStop();
     }
 
     @Override
@@ -105,23 +92,24 @@ public class SubRedditActivity extends ActionBarActivity {
         }
     }
 
-    private class GetSubReddits extends AsyncTask<Void, Void, Void> {
+    private class GetListOfSubReddits extends AsyncTask<Void, Void, ArrayList<SubReddit>> {
 
         public static final String SUB_REDDIT_JSON = "http://www.reddit.com/reddits.json";
 
         @Override
-        protected Void doInBackground(Void... voids) {
+        protected ArrayList<SubReddit> doInBackground(Void... voids) {
 
-            subReddits = new ArrayList<SubReddit>();
+            ArrayList<SubReddit> subReddits = new ArrayList<SubReddit>();
 
             //Add initial "top" reddit feed as initial feed which will be the first one loaded
             SubReddit top = new SubReddit();
             top.setName("top");
             top.setUrl("");
             subReddits.add(top);
+//            subredditAdapter.add(top);
 
+            // Get subreddits from json string and add to subreddit arraylist
             String source = getJSONString(SUB_REDDIT_JSON);
-
             try {
                 JSONObject root = new JSONObject(source);
                 JSONObject data = root.getJSONObject("data");
@@ -138,77 +126,60 @@ public class SubRedditActivity extends ActionBarActivity {
                     subRedditEntry.setUrl(url);
 
                     subReddits.add(subRedditEntry);
+//                    subredditAdapter.add(subRedditEntry);
                 }
 
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-            return null;
+            return subReddits;
         }
 
         @Override
-        protected void onPostExecute(Void aVoid) {
-            ArrayAdapter<SubReddit> adapter = new ArrayAdapter<SubReddit>(SubRedditActivity.this,
-                    android.R.layout.simple_spinner_dropdown_item, subReddits);
+        protected void onPostExecute(ArrayList<SubReddit> subReddits) {
             Spinner spinner = (Spinner) findViewById(R.id.spinner_subreddit);
-            spinner.setAdapter(adapter);
+            subredditAdapter.addAll(subReddits);
+            spinner.setAdapter(subredditAdapter);
             spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+
+                    // The nextAfterExtension will be swapped into the currentAfterPosition when
+                    // the next 'after' extension is read from the .json file.  So initialize
+                    // nextAfterExtension to "" so when it is copied to the currentAfterExtension
+                    // for upon reading the first page of subreddits and that currentAfterExtension
+                    // is added to the url string you just get the plain subredddit url by itself.
+                    currentAfterExtension = null;
+                    nextAfterExtension = "";
+
                     SubReddit selectedSubReddit = (SubReddit) adapterView.getSelectedItem();
                     subredditExtension = selectedSubReddit.getUrl();
-                    new GetRedditThread().execute(null);
+                    redditEntryAdapter.clear();
+                    new GetSubredditStories().execute(null);
                 }
 
                 @Override
                 public void onNothingSelected(AdapterView<?> adapterView) {
-
                 }
             });
         }
     }
 
-    private class GetRedditThread extends AsyncTask<String, Void, ArrayList<RedditEntry>> {
+    private class GetSubredditStories extends AsyncTask<Void, Void, ArrayList<RedditEntry>> {
 
         @Override
-        protected ArrayList<RedditEntry> doInBackground(String... voids) {
-            return getRedditStuff();
-        }
+        protected ArrayList<RedditEntry> doInBackground(Void... voids) {
+            String url = REDDIT_BASE + subredditExtension + JSON_EXTENSION;
+            String source = getJSONString(url);
 
-        @Override
-        protected void onPostExecute(ArrayList<RedditEntry> redditEntries) {
-            // Fill in ListView with reddit entries
-            ListView listView = (ListView) findViewById(R.id.list_reddit_entries);
-            RedditEntryAdapter adapter = new RedditEntryAdapter(SubRedditActivity.this,
-                    android.R.layout.simple_spinner_item, redditEntries);
+            ArrayList<RedditEntry> redditEntries = new ArrayList<RedditEntry>();
 
-            // clear listView before having it start loading new content so the old content
-            // doesn't show while loading the new content.
-            listView.setAdapter(null);
-            listView.setAdapter(adapter);
-        }
-
-        private ArrayList<RedditEntry> getRedditStuff() {
-
-            String result = getJSONString(REDDIT_BASE + subredditExtension + JSON_EXTENSION);
-
-            JSONSubreddit jsr = new JSONSubreddit(result);
-            return jsr.getEntries();
-
-        }
-    }
-
-    private class JSONSubreddit {
-
-        private ArrayList<RedditEntry> redditEntries;
-
-        private JSONSubreddit(String source) {
+            // Get reddit entries from json string and add to reddit arraylist
             try {
                 JSONObject root = new JSONObject(source);
-                JSONObject data = root.getJSONObject("data"); // This contains the list that we want
+                JSONObject data = root.getJSONObject("data"); // Contains the list that we want
                 JSONArray items = data.getJSONArray("children");
 
-                redditEntries = new ArrayList<RedditEntry>();
 
                 for (int i = 0; i < items.length(); i++) {
                     JSONObject entry = items.getJSONObject(i);
@@ -230,10 +201,15 @@ public class SubRedditActivity extends ActionBarActivity {
                 e.printStackTrace();
                 // Handle error gracefully here.
             }
+            return redditEntries;
         }
 
-        public ArrayList<RedditEntry> getEntries() {
-            return redditEntries;
+        @Override
+        protected void onPostExecute(ArrayList<RedditEntry> redditEntries) {
+            // Fill in ListView with reddit entries
+            ListView listView = (ListView) findViewById(R.id.list_reddit_entries);
+            redditEntryAdapter.addAll(redditEntries);
+            listView.setAdapter(redditEntryAdapter);
         }
     }
 

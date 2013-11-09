@@ -6,7 +6,7 @@ package co.grandcircus.myredditreaderapp;
 public class SubReddit {
 
     private String name;
-    private String url;
+    private String url;     // urlExtension that follows http://www.reddit.com/
 
     public String getUrl() {
         return url;
