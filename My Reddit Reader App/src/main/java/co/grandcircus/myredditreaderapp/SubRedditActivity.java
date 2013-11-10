@@ -9,6 +9,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
@@ -29,19 +30,24 @@ import java.util.ArrayList;
 
 public class SubRedditActivity extends ActionBarActivity {
 
-    public static final String REDDIT_BASE = "http://www.reddit.com/";
+    /* The form of the reddit address is REDDIT_BASE_EXTENSION + subredditExtension +
+     * JSON_EXTENSION + PREFEX_FOR_NEXT ENTRIES_EXTENSION + nextEntriesExtension
+     */
+    public static final String REDDIT_BASE_EXTENSION = "http://www.reddit.com/";
     public static final String JSON_EXTENSION = ".json";
+    // This prefix can be added even when the next entries extension is blank.  It will just
+    // load the initial page of entries.
+    public static final String PREFIX_FOR_NEXT_ENTRIES_EXTENSION = "?after=";
     private String subredditExtension;
-    // Stores the extension for getting the current entries and the next entries.
-    private String currentAfterExtension;
-    private String nextAfterExtension;
+    private String nextEntriesExtension;      // url extension for next page of entries
+    private static final int LOAD_ADDITIONAL_ENTRIES_TOLERANCE = 20;
 
     private ArrayAdapter<SubReddit> subredditAdapter;
     private RedditEntryAdapter redditEntryAdapter;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    protected void onCreate(Bundle savedInstanceState) {                                            // TODO Need to figure out how to save application state for when the application is hidden
+        super.onCreate(savedInstanceState);                                                         //      and then brought back from the background.
         setContentView(R.layout.activity_subreddit);
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
@@ -54,7 +60,89 @@ public class SubRedditActivity extends ActionBarActivity {
         redditEntryAdapter = new RedditEntryAdapter(SubRedditActivity.this,
                 android.R.layout.simple_spinner_item);
 
+    }
+
+    // Have this stuff in onStart() because I cannot access the Fragment's views from onCreate().
+    // Could probably do this in the Fragment's onCreateView, but then I would have to pass the
+    // adapters to the fragment.
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        Spinner spinner = (Spinner) findViewById(R.id.spinner_subreddit);
+        spinner.setAdapter(subredditAdapter);
+
+        // Add initial "top" reddit feed as initial feed. This will be the first feed loaded
+        // on startup.
+        SubReddit top = new SubReddit();
+        top.setName("top");
+        top.setUrl("");
+        subredditAdapter.add(top);
+
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+
+                // The nextEntriesExtension will be swapped into the currentAfterPosition when
+                // the next 'after' extension is read from the .json file.  So initialize
+                // nextEntriesExtension to "" so when it is copied to the subredditCurrentEntriesExtension
+                // for upon reading the first page of subreddits and that subredditCurrentEntriesExtension
+                // is added to the url string you just get the plain subredddit url by itself.
+                nextEntriesExtension = "";
+
+                SubReddit selectedSubReddit = (SubReddit) adapterView.getSelectedItem();
+                subredditExtension = selectedSubReddit.getUrl();
+                redditEntryAdapter.clear();
+                new GetSubredditStories().execute(null);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+            }
+        });
+
         new GetListOfSubReddits().execute(null);
+        ListView listView = (ListView)findViewById(R.id.list_reddit_entries);
+        listView.setAdapter(redditEntryAdapter);
+        resetRedditEntriesScrollListener();
+    }
+
+    private void resetRedditEntriesScrollListener() {
+        ListView listView = (ListView)findViewById(R.id.list_reddit_entries);
+        listView.setOnScrollListener(new AbsListView.OnScrollListener() {
+
+            private boolean loading = false;
+            private int previousTotalItemCount = 0;
+
+            @Override
+            public void onScrollStateChanged(AbsListView absListView, int i) {}
+
+            @Override
+            public void onScroll(AbsListView absListView, int firstVisibleItem,
+                                int visibleItemCount, int totalItemCount) {
+                // Avoids this method from taking effect before the ListView is initialized
+                if (totalItemCount == 0) return;
+                /* Initializes the previousTotalItemCount variable if it is either the first time
+                   that the funciton is being called (==0) or it is being called in connection with
+                   the display of a new subreddit (>= totalItemCount) */
+                if (previousTotalItemCount == 0 || previousTotalItemCount > totalItemCount) {
+                    previousTotalItemCount = totalItemCount;
+                }
+                int endOfVisibleList = firstVisibleItem + visibleItemCount;
+                int locationToLoadAdditionalEntries = totalItemCount - LOAD_ADDITIONAL_ENTRIES_TOLERANCE;
+                if (loading) {
+                    if (totalItemCount > previousTotalItemCount) {
+                        loading = false;
+                        previousTotalItemCount = totalItemCount;
+                    }
+                } else {
+                    if (endOfVisibleList >= locationToLoadAdditionalEntries) {
+                        loading = true;
+                        new GetSubredditStories().execute(null);
+                    }
+                }
+            }
+        });
     }
 
     @Override
@@ -76,9 +164,6 @@ public class SubRedditActivity extends ActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    /**
-     * A placeholder fragment containing a simple view.
-     */
     public static class PlaceholderFragment extends Fragment {
 
         public PlaceholderFragment() {
@@ -87,8 +172,7 @@ public class SubRedditActivity extends ActionBarActivity {
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                 Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.fragment_subreddit, container, false);
-            return rootView;
+            return inflater.inflate(R.layout.fragment_subreddit, container, false);
         }
     }
 
@@ -99,16 +183,11 @@ public class SubRedditActivity extends ActionBarActivity {
         @Override
         protected ArrayList<SubReddit> doInBackground(Void... voids) {
 
+            // Use an ArrayList that is passed to onPostExecute because updating the adapter
+            // directly updates the UI, which cannot be done in a separate thread.
             ArrayList<SubReddit> subReddits = new ArrayList<SubReddit>();
 
-            //Add initial "top" reddit feed as initial feed which will be the first one loaded
-            SubReddit top = new SubReddit();
-            top.setName("top");
-            top.setUrl("");
-            subReddits.add(top);
-//            subredditAdapter.add(top);
-
-            // Get subreddits from json string and add to subreddit arraylist
+            // Get subreddits from json string and add to ArrayList
             String source = getJSONString(SUB_REDDIT_JSON);
             try {
                 JSONObject root = new JSONObject(source);
@@ -126,7 +205,6 @@ public class SubRedditActivity extends ActionBarActivity {
                     subRedditEntry.setUrl(url);
 
                     subReddits.add(subRedditEntry);
-//                    subredditAdapter.add(subRedditEntry);
                 }
 
             } catch (JSONException e) {
@@ -137,31 +215,7 @@ public class SubRedditActivity extends ActionBarActivity {
 
         @Override
         protected void onPostExecute(ArrayList<SubReddit> subReddits) {
-            Spinner spinner = (Spinner) findViewById(R.id.spinner_subreddit);
             subredditAdapter.addAll(subReddits);
-            spinner.setAdapter(subredditAdapter);
-            spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                @Override
-                public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-
-                    // The nextAfterExtension will be swapped into the currentAfterPosition when
-                    // the next 'after' extension is read from the .json file.  So initialize
-                    // nextAfterExtension to "" so when it is copied to the currentAfterExtension
-                    // for upon reading the first page of subreddits and that currentAfterExtension
-                    // is added to the url string you just get the plain subredddit url by itself.
-                    currentAfterExtension = null;
-                    nextAfterExtension = "";
-
-                    SubReddit selectedSubReddit = (SubReddit) adapterView.getSelectedItem();
-                    subredditExtension = selectedSubReddit.getUrl();
-                    redditEntryAdapter.clear();
-                    new GetSubredditStories().execute(null);
-                }
-
-                @Override
-                public void onNothingSelected(AdapterView<?> adapterView) {
-                }
-            });
         }
     }
 
@@ -169,17 +223,21 @@ public class SubRedditActivity extends ActionBarActivity {
 
         @Override
         protected ArrayList<RedditEntry> doInBackground(Void... voids) {
-            String url = REDDIT_BASE + subredditExtension + JSON_EXTENSION;
+            String url = REDDIT_BASE_EXTENSION + subredditExtension + JSON_EXTENSION +
+                    PREFIX_FOR_NEXT_ENTRIES_EXTENSION + nextEntriesExtension;
             String source = getJSONString(url);
 
+            // Can't update the ListView's adapter directly because that is updating the UI
+            // from a thread, which results in an error.
             ArrayList<RedditEntry> redditEntries = new ArrayList<RedditEntry>();
 
             // Get reddit entries from json string and add to reddit arraylist
             try {
                 JSONObject root = new JSONObject(source);
                 JSONObject data = root.getJSONObject("data"); // Contains the list that we want
-                JSONArray items = data.getJSONArray("children");
+                nextEntriesExtension = data.optString("after", "");  // Link to next page
 
+                JSONArray items = data.getJSONArray("children");
 
                 for (int i = 0; i < items.length(); i++) {
                     JSONObject entry = items.getJSONObject(i);
@@ -199,17 +257,13 @@ public class SubRedditActivity extends ActionBarActivity {
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
-                // Handle error gracefully here.
             }
             return redditEntries;
         }
 
         @Override
         protected void onPostExecute(ArrayList<RedditEntry> redditEntries) {
-            // Fill in ListView with reddit entries
-            ListView listView = (ListView) findViewById(R.id.list_reddit_entries);
             redditEntryAdapter.addAll(redditEntries);
-            listView.setAdapter(redditEntryAdapter);
         }
     }
 
