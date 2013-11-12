@@ -1,7 +1,6 @@
-package co.grandcircus.myredditreaderapp;
+package co.grandcircus.myredditreader;
 
 import android.widget.AbsListView;
-import android.widget.SpinnerAdapter;
 
 /**
  * Created by Matt on 11/11/13.

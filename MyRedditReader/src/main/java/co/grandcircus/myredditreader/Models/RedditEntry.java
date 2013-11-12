@@ -1,4 +1,4 @@
-package co.grandcircus.myredditreaderapp;
+package co.grandcircus.myredditreader.Models;
 
 /**
  * Created by Matt on 11/4/13.

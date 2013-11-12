@@ -1,4 +1,4 @@
-package co.grandcircus.myredditreaderapp;
+package co.grandcircus.myredditreader;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;

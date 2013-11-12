@@ -1,4 +1,4 @@
-package co.grandcircus.myredditreaderapp;
+package co.grandcircus.myredditreader;
 
 
 import android.os.Bundle;
@@ -7,6 +7,8 @@ import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import co.grandcircus.myredditreader.Models.SubReddit;
+
 public class SubRedditActivity extends ActionBarActivity {
 
 
@@ -14,12 +16,6 @@ public class SubRedditActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {                                            // FIXME Need to figure out how to save application state for when the application is hidden
         super.onCreate(savedInstanceState);                                                         //      and then brought back from the background.
         setContentView(R.layout.activity_subreddit);
-
-//        if (savedInstanceState == null) {
-//            getSupportFragmentManager().beginTransaction()
-//                    .add(R.id.frame_subreddit_entry_fragment, new SubRedditEntryListFragment())
-//                    .commit();
-//        }
 
         // Fill in frame for subReddits
         if (savedInstanceState == null) {

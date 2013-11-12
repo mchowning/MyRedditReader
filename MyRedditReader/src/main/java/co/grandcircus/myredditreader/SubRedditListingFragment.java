@@ -1,4 +1,4 @@
-package co.grandcircus.myredditreaderapp;
+package co.grandcircus.myredditreader;
 
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -15,6 +15,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+
+import co.grandcircus.myredditreader.Models.SubReddit;
 
 /**
  * Created by Matt on 11/10/13.
@@ -69,7 +71,7 @@ public class SubRedditListingFragment extends Fragment {                        
 
     private class GetListOfSubReddits extends AsyncTask<Void, Void, ArrayList<SubReddit>> {
 
-        public static final String SUB_REDDIT_JSON = "http://www.reddit.com/reddits.json";
+        private static final String SUB_REDDIT_JSON = "http://www.reddit.com/reddits.json";
 
         @Override
         protected ArrayList<SubReddit> doInBackground(Void... voids) {

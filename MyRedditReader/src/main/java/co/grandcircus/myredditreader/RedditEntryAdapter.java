@@ -1,4 +1,4 @@
-package co.grandcircus.myredditreaderapp;
+package co.grandcircus.myredditreader;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -10,8 +10,7 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
-import java.util.ArrayList;
-import java.util.List;
+import co.grandcircus.myredditreader.Models.RedditEntry;
 
 /**
  * Created by Matt on 11/6/13.
