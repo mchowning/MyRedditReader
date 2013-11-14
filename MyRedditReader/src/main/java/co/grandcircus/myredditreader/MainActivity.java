@@ -22,6 +22,7 @@ public class MainActivity extends ActionBarActivity {
         Intent intent = new Intent(this, RedditEntry.class);
         startActivity(intent);
 
+        // TODO Add dealing with savedInstanceState stuff to restore spinner selection
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction()
                     .add(R.id.container, new PlaceholderFragment())

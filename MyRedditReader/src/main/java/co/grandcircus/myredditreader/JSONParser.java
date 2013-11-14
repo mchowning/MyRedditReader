@@ -40,4 +40,9 @@ public class JSONParser {
         return result;
     }
 
+    // TODO This is only a test method for the purpose of doing a junit test
+    public static int add1(int num) {
+        return num++;
+    }
+
 }

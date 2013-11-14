@@ -75,6 +75,7 @@ public class SubRedditEntryListFragment extends ListFragment {
         protected ArrayList<RedditEntry> doInBackground(Void... voids) {
             String url = REDDIT_BASE_EXTENSION + subReddit.getUrl() + JSON_EXTENSION +
                     PREFIX_FOR_NEXT_ENTRIES_EXTENSION + nextEntriesExtension;
+
             String source = JSONParser.getJSONString(url);
 
             // Can't update the ListView's adapter directly because that is updating the UI
