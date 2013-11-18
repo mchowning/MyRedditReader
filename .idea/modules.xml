@@ -2,7 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../AndroidProjects.iml" filepath="$PROJECT_DIR$/../AndroidProjects.iml" />
       <module fileurl="file://$PROJECT_DIR$/MyRedditReader/MyRedditReader.iml" filepath="$PROJECT_DIR$/MyRedditReader/MyRedditReader.iml" />
+      <module fileurl="file://$PROJECT_DIR$/MyRedditReaderAppProject.iml" filepath="$PROJECT_DIR$/MyRedditReaderAppProject.iml" />
       <module fileurl="file://$PROJECT_DIR$/MyRedditReaderProject.iml" filepath="$PROJECT_DIR$/MyRedditReaderProject.iml" />
     </modules>
   </component>

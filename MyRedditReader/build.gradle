@@ -26,17 +26,6 @@ android {
 apply plugin: 'android-unit-test'
 
 dependencies {
-    repositories() {
-        mavenCentral()
-    }
 	compile 'com.android.support:appcompat-v7:+'
-    compile 'com.squareup.picasso:picasso:2.1.1'
-
-    instrumentTestCompile 'org.robolectric:robolectric:2.2'
-    instrumentTestCompile 'junit:junit:4.10'
-    instrumentTestCompile 'com.squareup:fest-android:1.0.+'
-
-    testCompile 'org.robolectric:robolectric:2.2'
-    testCompile 'junit:junit:4.10'
-    testCompile 'com.squareup:fest-android:1.0.+'
+	compile 'com.squareup.picasso:picasso:2.1.1'
 }

@@ -16,20 +16,22 @@
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
-
-        <activity android:name=".MainActivity"
-            android:label="MainActivity"/>
-
         <activity
-            android:name=".SubRedditActivity"
+            android:name="co.grandcircus.myredditreader.MainActivity"
+            android:label="MainActivity" />
+        <activity
+            android:name="co.grandcircus.myredditreader.SubRedditActivity"
             android:label="My Reddit Reader" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-       </activity>
-
+        </activity>
+        <activity
+            android:name="co.grandcircus.myredditreader.EntryDisplayActivity"
+            android:label="@string/title_activity_entry_display" >
+        </activity>
     </application>
 
 </manifest>

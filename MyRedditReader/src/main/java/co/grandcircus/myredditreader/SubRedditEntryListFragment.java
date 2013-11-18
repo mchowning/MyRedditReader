@@ -1,11 +1,15 @@
 package co.grandcircus.myredditreader;
 
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ListView;
+import android.widget.Toast;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -40,6 +44,22 @@ public class SubRedditEntryListFragment extends ListFragment {
     public SubRedditEntryListFragment() {
         super();
     }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        getListView().setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                // TODO Start new Activty
+                RedditEntry redditEntry = (RedditEntry) adapterView.getItemAtPosition(i);
+                Intent intent = new Intent(getActivity(), EntryDisplayActivity.class);
+                intent.putExtra("entry", redditEntry);
+                startActivity(intent);
+            }
+        });
+    }
+
 
     public SubRedditEntryListFragment(SubReddit subReddit) {
         this.subReddit = subReddit;
