@@ -1,5 +1,6 @@
 package co.grandcircus.myredditreader;
 
+import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -59,6 +60,7 @@ public class SubRedditListingFragment extends Fragment {                        
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
                 SubReddit selectedSubReddit = (SubReddit) adapterView.getSelectedItem();
+
                 SubRedditActivity activity = (SubRedditActivity)getActivity();
                 activity.setSelectedSubReddit(selectedSubReddit);
             }

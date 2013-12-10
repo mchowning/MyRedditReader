@@ -1,6 +1,7 @@
 package co.grandcircus.myredditreader;
 
 import android.content.Intent;
+import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
@@ -51,7 +52,10 @@ public class SubRedditEntryListFragment extends ListFragment {
         getListView().setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                // TODO Start new Activty
+
+                // Make sound on click
+                MediaPlayer.create(getActivity(), R.raw.click).start();
+
                 RedditEntry redditEntry = (RedditEntry) adapterView.getItemAtPosition(i);
                 Intent intent = new Intent(getActivity(), EntryDisplayActivity.class);
                 intent.putExtra("entry", redditEntry);
@@ -81,7 +85,7 @@ public class SubRedditEntryListFragment extends ListFragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        getListView().setOnScrollListener(new InfiniteScrollListener(20) {
+        getListView().setOnScrollListener(new InfiniteScrollListener(25) {
             @Override
             public void loadAdditionalEntries() {
                 new GetSubredditStories().execute(null);

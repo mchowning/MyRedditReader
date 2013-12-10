@@ -21,7 +21,7 @@ public class SubRedditActivity extends ActionBarActivity {
         if (savedInstanceState == null) {
             SubRedditListingFragment frag = new SubRedditListingFragment();
             FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-            transaction.addToBackStack(null);
+//            transaction.addToBackStack(null);
             transaction.add(R.id.frame_list_of_subreddits_fragment, frag);
             transaction.commit();
         }
@@ -29,7 +29,8 @@ public class SubRedditActivity extends ActionBarActivity {
 
     /*
      * When called, this method fills in the subreddit entry frame with a new listfragment
-     * containing the relevant subreddit's entries.
+     * containing the relevant subreddit's entries.  This is called automatically when the
+     * subreddit spinner is first created.
      */
     public void setSelectedSubReddit(SubReddit subReddit) {
         SubRedditEntryListFragment frag = (SubRedditEntryListFragment) getSupportFragmentManager()
